@@ -17,6 +17,7 @@ import android.os.Handler;
 import androidx.core.content.pm.ShortcutInfoCompat;
 import androidx.core.content.pm.ShortcutManagerCompat;
 import androidx.core.graphics.drawable.IconCompat;
+
 import android.util.Log;
 import android.widget.Toast;
 
@@ -45,6 +46,8 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 
 import de.greenrobot.event.EventBus;
+import expo.modules.notifications.notifications.model.NotificationResponse;
+import expo.modules.notifications.notifications.service.NotificationResponseReceiver;
 import host.exp.exponent.AppLoader;
 import host.exp.exponent.LauncherActivity;
 import host.exp.exponent.ReactNativeStaticHelpers;
@@ -73,6 +76,9 @@ import okhttp3.OkHttpClient;
 import versioned.host.exp.exponent.ExponentPackage;
 import versioned.host.exp.exponent.ReactUnthemedRootView;
 import versioned.host.exp.exponent.ReadableObjectUtils;
+import versioned.host.exp.exponent.modules.universal.notifications.ScopedNotificationsUtils;
+
+import static expo.modules.notifications.notifications.service.NotificationResponseReceiver.NOTIFICATION_RESPONSE_KEY;
 
 // TOOD: need to figure out when we should reload the kernel js. Do we do it every time you visit
 // the home screen? only when the app gets kicked out of memory?
@@ -437,7 +443,21 @@ public class Kernel extends KernelInterface {
       if (intent.getBooleanExtra("EXKernelDisableNuxDefaultsKey", false)) {
         Constants.DISABLE_NUX = true;
       }
-    } catch (Throwable e) {}
+    } catch (Throwable e) {
+    }
+
+    if (intent.getAction() != null && intent.getAction().equals(NotificationResponseReceiver.NOTIFICATION_OPEN_APP_ACTION)) {
+      NotificationResponse response = intent.getParcelableExtra(NOTIFICATION_RESPONSE_KEY);
+      String experienceIdString = ScopedNotificationsUtils.getExperienceId(response);
+      if (experienceIdString == null) {
+        openDefaultUrl();
+        return;
+      }
+      String url = Uri.parse("exp://192.168.31.111:19000").toString();
+      openExperience(new KernelConstants.ExperienceOptions(url, url, null));
+
+      return;
+    }
 
     Bundle bundle = intent.getExtras();
     setActivityContext(activity);
@@ -493,6 +513,10 @@ public class Kernel extends KernelInterface {
       }
     }
 
+    openDefaultUrl();
+  }
+
+  private void openDefaultUrl() {
     String defaultUrl = Constants.INITIAL_URL == null ? KernelConstants.HOME_MANIFEST_URL : Constants.INITIAL_URL;
     openExperience(new KernelConstants.ExperienceOptions(defaultUrl, defaultUrl, null));
   }

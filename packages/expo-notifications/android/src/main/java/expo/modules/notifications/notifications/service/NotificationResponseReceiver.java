@@ -15,7 +15,8 @@ import expo.modules.notifications.notifications.model.NotificationResponse;
  * to {@link BaseNotificationsService}.
  */
 public class NotificationResponseReceiver extends BroadcastReceiver {
-  private static final String NOTIFICATION_RESPONSE_KEY = "response";
+  public static final String NOTIFICATION_OPEN_APP_ACTION = "expo.modules.notifications.OPEN_APP_ACTION";
+  public static final String NOTIFICATION_RESPONSE_KEY = "response";
   //                                      EXRespRcv
   private static final int REQUEST_CODE = 397377728;
 
@@ -34,11 +35,25 @@ public class NotificationResponseReceiver extends BroadcastReceiver {
 
   @Override
   public void onReceive(Context context, Intent intent) {
-    openAppToForeground(context);
-    BaseNotificationsService.enqueueResponseReceived(context, intent.<NotificationResponse>getParcelableExtra(NOTIFICATION_RESPONSE_KEY));
+    NotificationResponse response = intent.getParcelableExtra(NOTIFICATION_RESPONSE_KEY);
+    openAppToForeground(context, response);
+    BaseNotificationsService.enqueueResponseReceived(context, response);
   }
 
-  protected void openAppToForeground(Context context) {
+  protected void openAppToForeground(Context context, NotificationResponse notificationResponse) {
+    Intent notificationAppHandler = new Intent(NOTIFICATION_OPEN_APP_ACTION);
+    notificationAppHandler.setData(
+      getUriBuilderForIdentifier(notificationResponse.getNotification().getNotificationRequest().getIdentifier())
+        .appendPath(notificationResponse.getActionIdentifier()).build()
+    );
+    notificationAppHandler.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    notificationAppHandler.setPackage(context.getApplicationContext().getPackageName());
+    if (notificationAppHandler.resolveActivity(context.getPackageManager()) != null) {
+      notificationAppHandler.putExtra(NOTIFICATION_RESPONSE_KEY, notificationResponse);
+      context.startActivity(notificationAppHandler);
+      return;
+    }
+
     Intent mainActivity = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
     if (mainActivity == null) {
       Log.w("expo-notifications", "No launch intent found for application. Interacting with the notification won't open the app. The implementation uses `getLaunchIntentForPackage` to find appropriate activity.");
