@@ -31,7 +31,7 @@ Usage: expo [command] [options]
 
 ```
 
-<details><summary><h3>expo android</h3><p>Opens your app in the Expo client on a connected Android device.</p></summary>
+<details><summary><h3>expo start --android</h3><p>Opens your app in the Expo client on a connected Android device.</p></summary>
 <p>
 
 | Option         | Description             |
